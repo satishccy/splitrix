@@ -7,6 +7,7 @@ import { PlusIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
 import { useContract } from "../contexts/contract";
 import { MiniBarChart } from "../components/MiniBarChart";
 import { Link } from "react-router-dom";
+import { MobileMenu } from "../components/MobileMenu";
 
 export const Dashboard: React.FC = () => {
   const { connected } = useWallet();
@@ -89,7 +90,20 @@ export const Dashboard: React.FC = () => {
               </span>
             </h1>
           </Link>
-          <WalletConnect />
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <Link
+                to="/contacts"
+                className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm sm:text-base"
+              >
+                Contacts
+              </Link>
+            </div>
+            <div className="hidden sm:block">
+              <WalletConnect />
+            </div>
+            <MobileMenu />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

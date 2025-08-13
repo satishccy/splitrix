@@ -4,6 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { AptosAddress } from '../types';
 import { useContract } from '../contexts/contract';
 import { toast } from 'sonner';
+import { useContacts } from '../contexts/contacts';
 
 interface SettleDebtModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const SettleDebtModal: React.FC<SettleDebtModalProps> = ({
   bills,
 }) => {
   const { settleDebt, refreshGroupsOverview } = useContract();
+  const { resolveName } = useContacts();
   const [settlingByBill, setSettlingByBill] = useState<Record<number, boolean>>({});
   const [remaining, setRemaining] = useState(bills);
 
@@ -93,7 +95,9 @@ export const SettleDebtModal: React.FC<SettleDebtModalProps> = ({
                   <p className="text-sm text-gray-700">
                     <span className="font-medium">Paying to:</span>
                     <br />
-                    <span className="font-mono text-xs break-all">{creditorAddress}</span>
+                    <span className="font-mono text-xs break-all">
+                      {resolveName(creditorAddress) ? `${resolveName(creditorAddress)} (${creditorAddress})` : creditorAddress}
+                    </span>
                   </p>
                 </div>
 

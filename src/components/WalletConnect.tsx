@@ -54,7 +54,7 @@ export const WalletConnect: React.FC = () => {
 
   if (connected && account) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="hidden sm:flex items-center gap-4">
         <div className="bg-gradient-to-r from-[#01DCC8] to-[#F9F853] text-transparent bg-clip-text font-medium">
           {`${account.address.toString().slice(0, 6)}...${account.address
             .toString()

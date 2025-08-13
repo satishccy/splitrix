@@ -15,6 +15,8 @@ import { AptosAddress } from "../types";
 import { useContract } from "../contexts/contract";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { WalletConnect } from "../components/WalletConnect";
+import { MobileMenu } from "../components/MobileMenu";
+import { useContacts } from "../contexts/contacts";
 
 function hexToString(hex: string) {
   let str = "";
@@ -39,6 +41,7 @@ export const GroupPage: React.FC = () => {
   const { groupsOverview, isGroupsOverviewLoading } = useContract();
   const { account } = useWallet();
   const userAddress = account?.address?.toString() || "";
+  const { resolveName } = useContacts();
   const group = useMemo(
     () => groupsOverview.find((g) => g.group_id === groupIdNum),
     [groupsOverview, groupIdNum]
@@ -118,8 +121,11 @@ export const GroupPage: React.FC = () => {
 
   // Placeholder reserved for future multi-bill bulk settle
 
-  const formatAddress = (address: AptosAddress) =>
-    `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const formatAddress = (address: AptosAddress) => {
+    const name = resolveName(address);
+    if (name) return `${name} (${address.slice(0, 6)}...${address.slice(-4)})`;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
 
   const formatAmount = (amount: number) => (amount / 100000000).toFixed(4); // Convert from octas to APT
 
@@ -165,7 +171,20 @@ export const GroupPage: React.FC = () => {
               </span>
             </h1>
           </Link>
-          <WalletConnect />
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <Link
+                to="/contacts"
+                className="px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm sm:text-base"
+              >
+                Contacts
+              </Link>
+            </div>
+            <div className="hidden sm:block">
+              <WalletConnect />
+            </div>
+            <MobileMenu />
+          </div>
         </div>
         {/* Header */}
 
@@ -374,7 +393,7 @@ export const GroupPage: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-right flex flex-col gap-0 md:gap-1">
+                      <div className="text-right flex flex-col gap-0 md:gap-1">
                             <p className="text-sm whitespace-nowrap sm:text-base font-bold text-gray-900">
                               {formatAmount(b.total_amount)} APT
                             </p>

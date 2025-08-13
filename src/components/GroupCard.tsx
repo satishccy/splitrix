@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { GroupSummary } from '../types';
 import { UserGroupIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { useContacts } from '../contexts/contacts';
 
 interface GroupCardProps {
   group: GroupSummary;
 }
 
 export const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
+  const { resolveName } = useContacts();
   const formatBalance = (balance: number) => {
     const isPositive = balance >= 0;
     const absBalance = Math.abs(balance / 100000000); // Convert from octas to APT
@@ -22,6 +24,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
   };
 
   const balance = formatBalance(group.userNetBalance);
+  const adminName = resolveName(group.admin);
 
   return (
     <Link to={`/group/${group.id}`} className="block group">
@@ -33,7 +36,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">Group #{group.id}</h3>
-              <p className="text-xs sm:text-sm text-gray-500">Owner: {group.admin.slice(0, 6)}...{group.admin.slice(-4)} • {group.membersCount} members</p>
+              <p className="text-xs sm:text-sm text-gray-500">Owner: {adminName ? `${adminName} (${group.admin.slice(0, 6)}...${group.admin.slice(-4)})` : `${group.admin.slice(0, 6)}...${group.admin.slice(-4)}`} • {group.membersCount} members</p>
             </div>
           </div>
           <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#01DCC8] transition-colors" />

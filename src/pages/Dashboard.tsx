@@ -97,8 +97,7 @@ export const Dashboard: React.FC = () => {
           {/* Right sidebar (mobile first) */}
           <aside className="order-1 lg:order-2 lg:col-span-6">
             <div className="lg:sticky lg:top-6">
-              {groupSummaries.length > 0 && (
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
                   <h2 className="text-lg font-semibold text-gray-900 mb-5">Financial Overview</h2>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm flex flex-col justify-between min-h-[160px]">
@@ -148,8 +147,7 @@ export const Dashboard: React.FC = () => {
                       colors={["#ef4444", "#16a34a", "#0ea5e9", "#8b5cf6"]}
                     />
                   </div>
-                </div>
-              )}
+              </div>
             </div>
           </aside>
 

@@ -6,6 +6,7 @@ import {
 } from "@aptos-labs/wallet-adapter-react";
 import { WalletIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const WalletConnect: React.FC = () => {
   const {
@@ -19,6 +20,7 @@ export const WalletConnect: React.FC = () => {
   } = useWallet();
   const [isPetraWalletInstalled, setIsPetraWalletInstalled] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const router = useNavigate();
 
   useEffect(() => {
     const petraWallet = wallets.find((wallet) => wallet.name === "Petra");
@@ -62,6 +64,7 @@ export const WalletConnect: React.FC = () => {
           onClick={async () => {
             try {
               await disconnect();
+              router("/");
               toast("Disconnected wallet");
             } catch (err) {
               toast.error("Failed to disconnect");

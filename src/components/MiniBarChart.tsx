@@ -26,8 +26,8 @@ export const MiniBarChart: React.FC<MiniBarChartProps> = ({
   const chartHeight = height - 40; // leave room for value labels
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg width={width} height={height} className="max-w-full">
+    <div className="w-full overflow-x-auto pt-2">
+      <svg width={width} height={height} className="max-w-full overflow-visible">
         {/* Axis line */}
         <line
           x1={paddingX}

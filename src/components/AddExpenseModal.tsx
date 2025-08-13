@@ -1,6 +1,9 @@
-import React, { useState, Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, Fragment } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { toast } from "sonner";
+import { useContract } from "../contexts/contract";
+import { NETWORK } from "../config/aptos";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -13,42 +16,61 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   onClose,
   groupId,
 }) => {
-  const [totalAmount, setTotalAmount] = useState('');
-  const [memo, setMemo] = useState('');
+  const [totalAmount, setTotalAmount] = useState("");
+  const [memo, setMemo] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const { addExpense } = useContract();
+  const { addExpense, refreshGroupsOverview } = useContract();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!totalAmount || !memo.trim()) {
-      alert('Please fill in all fields');
+      toast.error("Please fill in all fields");
       return;
     }
 
     const amount = parseFloat(totalAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount');
+      toast.error("Please enter a valid amount");
       return;
     }
 
+    // upto 8 decimal places only
+    const amountStr = amount.toFixed(8);
+    const amountParts = amountStr.split(".");
+    if (amountParts.length > 2) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    const amountInOctas = Math.floor(amount * 100_000_000);
+
     setIsAdding(true);
-    
+
     try {
-      // Convert APT to octas (multiply by 10^8)
-      const amountInOctas = Math.floor(amount * 100000000);
-      await addExpense.mutateAsync({
+      const txHash = await addExpense(
         groupId,
-        totalAmount: amountInOctas,
-        memo: memo.trim(),
+        amountInOctas,
+        Array.from(new TextEncoder().encode(memo.trim()))
+      );
+      refreshGroupsOverview();
+      toast.success("Expense added successfully", {
+        action: {
+          label: "View on Explorer",
+          onClick: () => {
+            window.open(
+              `https://explorer.aptoslabs.com/tx/${txHash}?network=${NETWORK}`,
+              "_blank"
+            );
+          },
+        },
       });
-      
       onClose();
-      setTotalAmount('');
-      setMemo('');
+      setTotalAmount("");
+      setMemo("");
     } catch (error) {
-      console.error('Failed to add expense:', error);
-      alert('Failed to add expense. Please try again.');
+      console.error("Failed to add expense:", error);
+      toast.error("Failed to add expense. Please try again.");
     } finally {
       setIsAdding(false);
     }
@@ -82,7 +104,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             >
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-6">
-                  <Dialog.Title as="h3" className="text-lg font-medium text-gray-900">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium text-gray-900"
+                  >
                     Add New Expense
                   </Dialog.Title>
                   <button
@@ -135,7 +160,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       disabled={isAdding}
                       className="flex-1 py-2 px-4 bg-gradient-to-r from-[#F9F853] to-[#E6E04A] text-gray-900 rounded-lg hover:from-[#F0F04A] hover:to-[#DEDE41] transition-all disabled:opacity-50 font-medium"
                     >
-                      {isAdding ? 'Adding...' : 'Add Expense'}
+                      {isAdding ? "Adding..." : "Add Expense"}
                     </button>
                   </div>
                 </form>

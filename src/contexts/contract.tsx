@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   type ReactNode,
+  useCallback,
 } from "react";
 import { aptos, FUNCTIONS } from "../config/aptos";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
@@ -15,6 +16,17 @@ type ContractContextType = {
   groupsOverview: GroupOverview[];
   refreshGroupsOverview: () => void;
   isGroupsOverviewLoading: boolean;
+  addExpense: (
+    groupId: number,
+    totalAmount: number,
+    memo: Array<number>
+  ) => Promise<string>;
+  getGroupDetails: (groupId: number) => GroupOverview;
+  settleDebt: (
+    groupId: number,
+    creditorAddress: string,
+    paymentAmount: number
+  ) => Promise<string>;
 };
 
 function getDefaultContractContext(): ContractContextType {
@@ -24,6 +36,11 @@ function getDefaultContractContext(): ContractContextType {
     groupsOverview: [],
     refreshGroupsOverview: () => {},
     isGroupsOverviewLoading: true,
+    addExpense: async () => "",
+    getGroupDetails: () => {
+      throw new Error("Wallet not connected");
+    },
+    settleDebt: async () => "",
   };
 }
 
@@ -194,7 +211,7 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
         }
       }, 0);
       const groupOverview: GroupOverview = {
-        group_id: group.group_id,
+        group_id: Number(group.group_id),
         admin: group.admin,
         members: group.members,
         bills,
@@ -255,6 +272,55 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addExpense = async (
+    groupId: number,
+    totalAmount: number,
+    memo: Array<number>
+  ) => {
+    if (!account || !connected) {
+      throw new Error("Wallet not connected");
+    }
+    const tx = await signAndSubmitTransaction({
+      data: {
+        function: FUNCTIONS.ADD_EXPENSE,
+        functionArguments: [groupId, totalAmount, memo],
+      },
+    });
+    const result = await aptos.waitForTransaction({
+      transactionHash: tx.hash,
+    });
+    if (result.success) {
+      return result.hash;
+    } else {
+      throw new Error(`Failed to add expense`);
+    }
+  };
+
+  const settleDebt = async (
+    groupId: number,
+    creditorAddress: string,
+    paymentAmount: number
+  ) => {
+    if (!account || !connected) {
+      throw new Error("Wallet not connected");
+    }
+    const tx = await signAndSubmitTransaction({
+      data: {
+        function: FUNCTIONS.SETTLE_DEBT,
+        typeArguments: [],
+        functionArguments: [groupId, creditorAddress, paymentAmount],
+      },
+    });
+    const result = await aptos.waitForTransaction({
+      transactionHash: tx.hash,
+    });
+    if (result.success) {
+      return result.hash;
+    } else {
+      throw new Error(`Failed to settle debt`);
+    }
+  };
+
   const getGroupsOverviewForMember = async () => {
     if (!account || !connected) {
       throw new Error("Wallet not connected");
@@ -274,6 +340,20 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const getGroupDetails = useCallback(
+    (groupId: number) => {
+      if (!account || !connected) {
+        throw new Error("Wallet not connected");
+      }
+      const group = groupsOverview.find((group) => group.group_id === groupId);
+      if (!group) {
+        throw new Error("Group not found");
+      }
+      return group;
+    },
+    [account, connected, groupsOverview]
+  );
+
   return (
     <ContractContext.Provider
       value={{
@@ -282,6 +362,9 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
         groupsOverview,
         refreshGroupsOverview,
         isGroupsOverviewLoading,
+        addExpense,
+        settleDebt,
+        getGroupDetails,
       }}
     >
       {children}

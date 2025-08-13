@@ -1,38 +1,129 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { AddExpenseModal } from '../components/AddExpenseModal';
-import { SettleDebtModal } from '../components/SettleDebtModal';
-import { 
-  ArrowLeftIcon, 
-  PlusIcon, 
+import React, { useMemo, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { AddExpenseModal } from "../components/AddExpenseModal";
+import { SettleDebtModal } from "../components/SettleDebtModal";
+import {
+  ArrowLeftIcon,
+  PlusIcon,
   UserGroupIcon,
   CurrencyDollarIcon,
   ReceiptRefundIcon,
-  BanknotesIcon
-} from '@heroicons/react/24/outline';
-import { CounterpartyBalance, AptosAddress } from '../types';
-import { useContract } from '../contexts/contract';
+  BanknotesIcon,
+} from "@heroicons/react/24/outline";
+import { AptosAddress } from "../types";
+// import { toast } from "sonner";
+import { useContract } from "../contexts/contract";
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { WalletConnect } from "../components/WalletConnect";
+
+function hexToString(hex: string) {
+  let str = "";
+  for (let i = 2; i < hex.length; i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+  }
+  return str;
+}
 
 export const GroupPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  const { getGroupDetails } = useContract();
-  const [activeTab, setActiveTab] = useState<'balances' | 'bills'>('balances');
+  const [activeTab, setActiveTab] = useState<"balances" | "bills">("balances");
+  // const { settleDebt } = useContract();
   const [showAddExpense, setShowAddExpense] = useState(false);
-  const [settleDebt, setSettleDebt] = useState<{
+  const [settleInfo, setSettleInfo] = useState<{
     creditorAddress: AptosAddress;
-    amount: number;
+    bills: Array<{ billId: number; memo: string; amountOwed: number }>;
   } | null>(null);
+  const [expandedBillId, setExpandedBillId] = useState<number | null>(null);
 
   const groupIdNum = groupId ? parseInt(groupId, 10) : 0;
-  const { data: group, isLoading } = useGroupDetails(groupIdNum);
+  const { groupsOverview, isGroupsOverviewLoading } = useContract();
+  const { account } = useWallet();
+  const userAddress = account?.address?.toString() || "";
+  const group = useMemo(
+    () => groupsOverview.find((g) => g.group_id === groupIdNum),
+    [groupsOverview, groupIdNum]
+  );
 
-  const formatAddress = (address: AptosAddress) => 
+  const billStatus = useMemo(() => {
+    if (!group || !expandedBillId || !userAddress) return null;
+    const bill = group.bills.find((b) => b.bill_id === expandedBillId);
+    if (!bill) return null;
+    const full_debtors = group.members.filter((m) => m !== bill.payer);
+    const missing_debtors = full_debtors.filter(
+      (m) => !bill.debtors.some((d) => d.debtor === m)
+    );
+    const debtors_copy = [...bill.debtors];
+    for (const d of missing_debtors) {
+      debtors_copy.push({
+        debtor: d,
+        owed: bill.per_share_amount,
+        is_paid: true,
+      });
+    }
+    const paid_debtors = debtors_copy.filter((d) => d.is_paid);
+    const unpaid_debtors = debtors_copy.filter((d) => !d.is_paid);
+    const paid_debtors_sum = paid_debtors.reduce((sum, d) => sum + d.owed, 0);
+    const unpaid_debtors_sum = unpaid_debtors.reduce(
+      (sum, d) => sum + d.owed,
+      0
+    );
+    return {
+      paid_debtors,
+      unpaid_debtors,
+      paid_debtors_sum,
+      unpaid_debtors_sum,
+      is_mine: bill.payer === userAddress,
+      has_unpaid: unpaid_debtors.length > 0,
+    };
+  }, [expandedBillId]);
+
+  const userOwes = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!group || !userAddress)
+      return [] as { address: string; amount: number }[];
+    for (const bill of group.bills) {
+      if (bill.payer !== userAddress) {
+        const debtor = bill.debtors.find(
+          (d) => d.debtor === userAddress && !d.is_paid
+        );
+        if (debtor) {
+          map.set(bill.payer, (map.get(bill.payer) || 0) + debtor.owed);
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([address, amount]) => ({
+      address,
+      amount,
+    }));
+  }, [group, userAddress]);
+
+  const userIsOwed = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!group || !userAddress)
+      return [] as { address: string; amount: number }[];
+    for (const bill of group.bills) {
+      if (bill.payer === userAddress) {
+        for (const d of bill.debtors) {
+          if (!d.is_paid) {
+            map.set(d.debtor, (map.get(d.debtor) || 0) + d.owed);
+          }
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([address, amount]) => ({
+      address,
+      amount,
+    }));
+  }, [group, userAddress]);
+
+  // Placeholder reserved for future multi-bill bulk settle
+
+  const formatAddress = (address: AptosAddress) =>
     `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-  const formatAmount = (amount: number) => 
-    (amount / 100000000).toFixed(4); // Convert from octas to APT
+  const formatAmount = (amount: number) => (amount / 100000000).toFixed(4); // Convert from octas to APT
 
-  if (isLoading) {
+  if (isGroupsOverviewLoading || !group) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#01DCC8]/10 via-white to-[#F9F853]/10 flex items-center justify-center">
         <div className="text-center">
@@ -43,34 +134,21 @@ export const GroupPage: React.FC = () => {
     );
   }
 
-  if (!group) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#01DCC8]/10 via-white to-[#F9F853]/10 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Group not found</h2>
-          <Link to="/" className="text-[#01DCC8] hover:text-[#00B4A6] transition-colors">
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // Calculate user's net balance for this group
-  const totalOwed = group.userIsOwed.reduce((sum, debt) => sum + debt.amount, 0);
-  const totalOwes = group.userOwes.reduce((sum, debt) => sum + debt.amount, 0);
+  const totalOwed = userIsOwed.reduce((sum, debt) => sum + debt.amount, 0);
+  const totalOwes = userOwes.reduce((sum, debt) => sum + debt.amount, 0);
   const netBalance = totalOwed - totalOwes;
 
   const formatNetBalance = (balance: number) => {
     const isPositive = balance >= 0;
     const absBalance = Math.abs(balance / 100000000);
-    
+
     return {
       amount: absBalance.toFixed(4),
-      label: isPositive ? 'You are owed' : 'You owe',
-      className: isPositive 
-        ? 'text-green-600 bg-green-50 border-green-200' 
-        : 'text-red-600 bg-red-50 border-red-200'
+      label: isPositive ? "You are owed" : "You owe",
+      className: isPositive
+        ? "text-green-600 bg-green-50 border-green-200"
+        : "text-red-600 bg-red-50 border-red-200",
     };
   };
 
@@ -78,8 +156,19 @@ export const GroupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#01DCC8]/10 via-white to-[#F9F853]/10">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              <span className="bg-gradient-to-r from-[#01DCC8] to-[#F9F853] text-transparent bg-clip-text">
+                Splitrix
+              </span>
+            </h1>
+          </div>
+          <WalletConnect />
+        </div>
         {/* Header */}
+
         <div className="flex items-center gap-4 mb-8">
           <Link
             to="/"
@@ -93,7 +182,9 @@ export const GroupPage: React.FC = () => {
                 <UserGroupIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Group #{group.id}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Group #{groupIdNum}
+                </h1>
                 <p className="text-gray-600">Expense Group</p>
               </div>
             </div>
@@ -109,8 +200,12 @@ export const GroupPage: React.FC = () => {
 
         {/* Balance Summary */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Balance in This Group</h2>
-          <div className={`inline-flex items-center px-4 py-3 rounded-xl border ${balance.className}`}>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Your Balance in This Group
+          </h2>
+          <div
+            className={`inline-flex items-center px-4 py-3 rounded-xl border ${balance.className}`}
+          >
             <span className="text-lg font-semibold">
               {balance.label}: {balance.amount} APT
             </span>
@@ -122,22 +217,22 @@ export const GroupPage: React.FC = () => {
           <div className="border-b border-gray-200">
             <nav className="flex">
               <button
-                onClick={() => setActiveTab('balances')}
+                onClick={() => setActiveTab("balances")}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                  activeTab === 'balances'
-                    ? 'text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  activeTab === "balances"
+                    ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
                 <CurrencyDollarIcon className="h-5 w-5 inline-block mr-2" />
                 Balances
               </button>
               <button
-                onClick={() => setActiveTab('bills')}
+                onClick={() => setActiveTab("bills")}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                  activeTab === 'bills'
-                    ? 'text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  activeTab === "bills"
+                    ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
                 <ReceiptRefundIcon className="h-5 w-5 inline-block mr-2" />
@@ -147,17 +242,17 @@ export const GroupPage: React.FC = () => {
           </div>
 
           <div className="p-6">
-            {activeTab === 'balances' ? (
+            {activeTab === "balances" ? (
               <div className="space-y-6">
                 {/* You Owe Section */}
-                {group.userOwes.length > 0 && (
+                {userOwes.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
                       <BanknotesIcon className="h-5 w-5" />
                       You Owe
                     </h3>
                     <div className="space-y-3">
-                      {group.userOwes.map((debt) => (
+                      {userOwes.map((debt) => (
                         <div
                           key={debt.address}
                           className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-xl"
@@ -171,10 +266,26 @@ export const GroupPage: React.FC = () => {
                             </p>
                           </div>
                           <button
-                            onClick={() => setSettleDebt({
-                              creditorAddress: debt.address,
-                              amount: debt.amount,
-                            })}
+                            onClick={() => {
+                              const creditorBills = (group?.bills || [])
+                                .filter((b) => b.payer === debt.address)
+                                .map((b) => {
+                                  const d = b.debtors.find(
+                                    (x) =>
+                                      x.debtor === userAddress && !x.is_paid
+                                  );
+                                  return {
+                                    billId: b.bill_id,
+                                    memo: b.memo,
+                                    amountOwed: d ? d.owed : 0,
+                                  };
+                                })
+                                .filter((x) => x.amountOwed > 0);
+                              setSettleInfo({
+                                creditorAddress: debt.address,
+                                bills: creditorBills,
+                              });
+                            }}
                             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                           >
                             Settle
@@ -186,14 +297,14 @@ export const GroupPage: React.FC = () => {
                 )}
 
                 {/* You Are Owed Section */}
-                {group.userIsOwed.length > 0 && (
+                {userIsOwed.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center gap-2">
                       <CurrencyDollarIcon className="h-5 w-5" />
                       You Are Owed
                     </h3>
                     <div className="space-y-3">
-                      {group.userIsOwed.map((debt) => (
+                      {userIsOwed.map((debt) => (
                         <div
                           key={debt.address}
                           className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl"
@@ -215,42 +326,125 @@ export const GroupPage: React.FC = () => {
                   </div>
                 )}
 
-                {group.userOwes.length === 0 && group.userIsOwed.length === 0 && (
+                {userOwes.length === 0 && userIsOwed.length === 0 && (
                   <div className="text-center py-8">
                     <CurrencyDollarIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">All settled up! No outstanding balances.</p>
+                    <p className="text-gray-600">
+                      All settled up! No outstanding balances.
+                    </p>
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-4">
-                {group.bills.length === 0 ? (
+                {!group || group.bills.length === 0 ? (
                   <div className="text-center py-8">
                     <ReceiptRefundIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">No bills yet. Add your first expense to get started!</p>
+                    <p className="text-gray-600">
+                      No bills yet. Add your first expense to get started!
+                    </p>
                   </div>
                 ) : (
-                  group.bills.map((bill) => (
-                    <div
-                      key={bill.id}
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{bill.memo}</h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Paid by: {formatAddress(bill.payer)}
-                          </p>
+                  group.bills.map((b) => {
+                    const isMine = b.payer === userAddress;
+                    const hasUnpaid = b.debtors.some((d) => !d.is_paid);
+                    return (
+                      <div
+                        key={b.bill_id}
+                        className="p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                        onClick={() =>
+                          setExpandedBillId(
+                            expandedBillId === b.bill_id ? null : b.bill_id
+                          )
+                        }
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900">
+                              {hexToString(b.memo)}
+                            </h4>
+                            {isMine && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                Your bill
+                              </span>
+                            )}
+                            {hasUnpaid && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                                Unpaid
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-900">
+                              {formatAmount(b.total_amount)} APT
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Bill #{b.bill_id}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Payer: {formatAddress(b.payer)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900">
-                            {formatAmount(bill.total_amount)} APT
-                          </p>
-                          <p className="text-xs text-gray-500">Bill #{bill.id}</p>
-                        </div>
+                        {expandedBillId === b.bill_id && billStatus && (
+                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg border border-green-200 bg-green-50">
+                              <p className="text-sm font-medium text-green-700 mb-2">
+                                Paid
+                              </p>
+                              <div className="space-y-2">
+                                {billStatus.paid_debtors.length === 0 ? (
+                                  <p className="text-sm text-gray-600">
+                                    No payments yet
+                                  </p>
+                                ) : (
+                                  billStatus.paid_debtors.map((d) => (
+                                    <div
+                                      key={d.debtor}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span className="font-mono text-xs">
+                                        {formatAddress(d.debtor)}
+                                      </span>
+                                      <span className="text-xs text-gray-600">
+                                        {formatAmount(b.per_share_amount)} APT
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-3 rounded-lg border border-red-200 bg-red-50">
+                              <p className="text-sm font-medium text-red-700 mb-2">
+                                Unpaid
+                              </p>
+                              <div className="space-y-2">
+                                {billStatus.unpaid_debtors.length === 0 ? (
+                                  <p className="text-sm text-gray-600">
+                                    No pending payments
+                                  </p>
+                                ) : (
+                                  billStatus.unpaid_debtors.map((d) => (
+                                    <div
+                                      key={d.debtor}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span className="font-mono text-xs">
+                                        {formatAddress(d.debtor)}
+                                      </span>
+                                      <span className="text-xs text-gray-600">
+                                        {formatAmount(d.owed)} APT
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -261,16 +455,16 @@ export const GroupPage: React.FC = () => {
         <AddExpenseModal
           isOpen={showAddExpense}
           onClose={() => setShowAddExpense(false)}
-          groupId={group.id}
+          groupId={groupIdNum}
         />
 
-        {settleDebt && (
+        {settleInfo && (
           <SettleDebtModal
-            isOpen={!!settleDebt}
-            onClose={() => setSettleDebt(null)}
-            groupId={group.id}
-            creditorAddress={settleDebt.creditorAddress}
-            totalDebt={settleDebt.amount}
+            isOpen={!!settleInfo}
+            onClose={() => setSettleInfo(null)}
+            groupId={groupIdNum}
+            creditorAddress={settleInfo.creditorAddress}
+            bills={settleInfo.bills}
           />
         )}
       </div>

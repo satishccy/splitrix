@@ -16,7 +16,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 }) => {
   const [members, setMembers] = useState<string[]>([""]);
   const [isCreating, setIsCreating] = useState(false);
-  const { createGroup } = useContract();
+  const { createGroup, refreshGroupsOverview } = useContract();
 
   const addMemberField = () => {
     setMembers([...members, ""]);
@@ -47,6 +47,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
     try {
       const txHash = await createGroup(validMembers);
+      refreshGroupsOverview();
       toast.success("Group created successfully", {
         action: {
           label: "View on Explorer",

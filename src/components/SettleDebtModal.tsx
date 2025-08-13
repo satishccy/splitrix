@@ -2,13 +2,23 @@ import React, { useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { AptosAddress } from '../types';
+import { useContract } from '../contexts/contract';
+import { toast } from 'sonner';
 
 interface SettleDebtModalProps {
   isOpen: boolean;
   onClose: () => void;
   groupId: number;
   creditorAddress: AptosAddress;
-  totalDebt: number;
+  bills: Array<{ billId: number; memo: string; amountOwed: number }>;
+}
+
+function hexToString(hex: string) {
+  let str = "";
+  for (let i = 2; i < hex.length; i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+  }
+  return str;
 }
 
 export const SettleDebtModal: React.FC<SettleDebtModalProps> = ({
@@ -16,51 +26,27 @@ export const SettleDebtModal: React.FC<SettleDebtModalProps> = ({
   onClose,
   groupId,
   creditorAddress,
-  totalDebt,
+  bills,
 }) => {
-  const [paymentAmount, setPaymentAmount] = useState(
-    (totalDebt / 100000000).toFixed(4) // Convert from octas to APT
-  );
-  const [isSettling, setIsSettling] = useState(false);
-  const { settleDebt } = useContract();
+  const { settleDebt, refreshGroupsOverview } = useContract();
+  const [settlingByBill, setSettlingByBill] = useState<Record<number, boolean>>({});
+  const [remaining, setRemaining] = useState(bills);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!paymentAmount) {
-      alert('Please enter a payment amount');
-      return;
-    }
+  const formatAmount = (amount: number) => (amount / 100000000).toFixed(4);
 
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount');
-      return;
-    }
-
-    const maxAmount = totalDebt / 100000000;
-    if (amount > maxAmount) {
-      alert(`Payment amount cannot exceed ${maxAmount.toFixed(4)} APT`);
-      return;
-    }
-
-    setIsSettling(true);
-    
+  const handleSettleBill = async (billId: number, amountOwed: number) => {
+    if (settlingByBill[billId]) return;
+    setSettlingByBill((s) => ({ ...s, [billId]: true }));
     try {
-      // Convert APT to octas (multiply by 10^8)
-      const amountInOctas = Math.floor(amount * 100000000);
-      await settleDebt.mutateAsync({
-        groupId,
-        creditorAddress,
-        paymentAmount: amountInOctas,
-      });
-      
-      onClose();
+      await settleDebt(groupId, creditorAddress, amountOwed);
+      toast.success('Bill settled');
+      refreshGroupsOverview();
+      setRemaining((prev) => prev.filter((b) => b.billId !== billId));
     } catch (error) {
       console.error('Failed to settle debt:', error);
-      alert('Failed to settle debt. Please try again.');
+      toast.error('Failed to settle debt. Please try again.');
     } finally {
-      setIsSettling(false);
+      setSettlingByBill((s) => ({ ...s, [billId]: false }));
     }
   };
 
@@ -103,50 +89,45 @@ export const SettleDebtModal: React.FC<SettleDebtModalProps> = ({
                   </button>
                 </div>
 
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-gray-700">
                     <span className="font-medium">Paying to:</span>
                     <br />
                     <span className="font-mono text-xs break-all">{creditorAddress}</span>
                   </p>
-                  <p className="text-sm text-gray-700 mt-2">
-                    <span className="font-medium">Total debt:</span> {(totalDebt / 100000000).toFixed(4)} APT
-                  </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Payment Amount (APT)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      max={(totalDebt / 100000000).toFixed(4)}
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#01DCC8] focus:border-transparent"
-                    />
-                  </div>
+                <div className="space-y-3">
+                  {remaining.length === 0 ? (
+                    <div className="text-center text-sm text-gray-600">All selected debts settled.</div>
+                  ) : (
+                    remaining.map((b) => (
+                      <div key={b.billId} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl">
+                        <div>
+                          <p className="font-medium text-gray-900">{hexToString(b.memo)}</p>
+                          <p className="text-sm text-gray-600">Amount: {formatAmount(b.amountOwed)} APT</p>
+                        </div>
+                        <button
+                          onClick={() => handleSettleBill(b.billId, b.amountOwed)}
+                          disabled={!!settlingByBill[b.billId]}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
+                        >
+                          {settlingByBill[b.billId] ? 'Paying...' : 'Settle'}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSettling}
-                      className="flex-1 py-2 px-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 font-medium"
-                    >
-                      {isSettling ? 'Settling...' : 'Confirm & Pay'}
-                    </button>
-                  </div>
-                </form>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </Dialog.Panel>
             </Transition.Child>
           </div>

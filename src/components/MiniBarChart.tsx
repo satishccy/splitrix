@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface MiniBarChartProps {
   data: number[];
@@ -13,21 +13,36 @@ export const MiniBarChart: React.FC<MiniBarChartProps> = ({
   colors,
   height = 140,
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(480);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setContainerWidth(w);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const maxValue = Math.max(...data, 1);
-  const paddingX = 16;
-  const barGap = 16;
+  const paddingX = containerWidth < 360 ? 10 : 16;
+  const barGap = containerWidth < 360 ? 8 : 16;
   const barCount = data.length;
-  const width = 480;
+  const width = Math.max(containerWidth, 200);
   const innerWidth = width - paddingX * 2;
-  const barWidth = Math.max(
-    12,
-    (innerWidth - barGap * (barCount - 1)) / barCount
-  );
+  const barWidth = Math.max(8, (innerWidth - barGap * (barCount - 1)) / barCount);
   const chartHeight = height - 40; // leave room for value labels
+  const valueFontSize = containerWidth < 360 ? 10 : 12;
+  const labelFontSize = containerWidth < 360 ? 10 : 11;
 
   return (
-    <div className="w-full overflow-x-auto pt-2">
-      <svg width={width} height={height} className="max-w-full overflow-visible">
+    <div ref={containerRef} className="w-full pt-2">
+      <svg width={width} height={height} className="block overflow-visible">
         {/* Axis line */}
         <line
           x1={paddingX}
@@ -58,7 +73,7 @@ export const MiniBarChart: React.FC<MiniBarChartProps> = ({
                 x={x + barWidth / 2}
                 y={y - 6}
                 textAnchor="middle"
-                fontSize={12}
+                fontSize={valueFontSize}
                 fill="#111827"
               >
                 {(value / 100000000).toFixed(2)}
@@ -68,7 +83,7 @@ export const MiniBarChart: React.FC<MiniBarChartProps> = ({
                 x={x + barWidth / 2}
                 y={height - 8}
                 textAnchor="middle"
-                fontSize={11}
+                fontSize={labelFontSize}
                 fill="#6B7280"
               >
                 {labels[idx]}

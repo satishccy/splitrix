@@ -25,22 +25,22 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group }) => {
 
   return (
     <Link to={`/group/${group.id}`} className="block group">
-      <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group-hover:border-[#01DCC8]/30">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group-hover:border-[#01DCC8]/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#01DCC8] to-[#00B4A6] rounded-lg">
               <UserGroupIcon className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Group #{group.id}</h3>
-              <p className="text-sm text-gray-500">Owner: {group.admin.slice(0, 6)}...{group.admin.slice(-4)} • {group.membersCount} members</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Group #{group.id}</h3>
+              <p className="text-xs sm:text-sm text-gray-500">Owner: {group.admin.slice(0, 6)}...{group.admin.slice(-4)} • {group.membersCount} members</p>
             </div>
           </div>
           <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#01DCC8] transition-colors" />
         </div>
         
-        <div className={`inline-flex items-center px-3 py-2 rounded-lg border ${balance.className}`}>
-          <span className="text-sm font-medium">
+        <div className={`inline-flex items-center px-2.5 py-1.5 rounded-lg border ${balance.className}`}>
+          <span className="text-xs sm:text-sm font-medium">
             {balance.label}: {balance.amount} APT
           </span>
         </div>

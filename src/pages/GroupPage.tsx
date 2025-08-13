@@ -156,20 +156,20 @@ export const GroupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#01DCC8]/10 via-white to-[#F9F853]/10">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <Link to="/" className="cursor-pointer">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               <span className="bg-gradient-to-r from-[#01DCC8] to-[#F9F853] text-transparent bg-clip-text">
                 Splitrix
               </span>
             </h1>
-          </div>
+          </Link>
           <WalletConnect />
         </div>
         {/* Header */}
 
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Link
             to="/"
             className="p-2 text-gray-600 hover:text-[#01DCC8] hover:bg-white/50 rounded-lg transition-all"
@@ -182,7 +182,7 @@ export const GroupPage: React.FC = () => {
                 <UserGroupIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   Group #{groupIdNum}
                 </h1>
                 <p className="text-gray-600">Expense Group</p>
@@ -191,22 +191,22 @@ export const GroupPage: React.FC = () => {
           </div>
           <button
             onClick={() => setShowAddExpense(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#F9F853] to-[#E6E04A] text-gray-900 rounded-xl hover:from-[#F0F04A] hover:to-[#DEDE41] transition-all shadow-lg hover:shadow-xl font-semibold"
+            className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-[#F9F853] to-[#E6E04A] text-gray-900 rounded-xl hover:from-[#F0F04A] hover:to-[#DEDE41] transition-all shadow-lg hover:shadow-xl font-semibold"
           >
-            <PlusIcon className="h-5 w-5" />
-            Add Expense
+            <PlusIcon className="h-5 w-5" /> Add
+            <span className="hidden md:block">Expense</span>
           </button>
         </div>
 
         {/* Balance Summary */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             Your Balance in This Group
           </h2>
           <div
-            className={`inline-flex items-center px-4 py-3 rounded-xl border ${balance.className}`}
+            className={`inline-flex items-center px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border ${balance.className}`}
           >
-            <span className="text-lg font-semibold">
+            <span className="text-base sm:text-lg font-semibold">
               {balance.label}: {balance.amount} APT
             </span>
           </div>
@@ -218,7 +218,7 @@ export const GroupPage: React.FC = () => {
             <nav className="flex">
               <button
                 onClick={() => setActiveTab("balances")}
-                className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors ${
                   activeTab === "balances"
                     ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -229,7 +229,7 @@ export const GroupPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab("bills")}
-                className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors ${
                   activeTab === "bills"
                     ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -241,13 +241,13 @@ export const GroupPage: React.FC = () => {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === "balances" ? (
               <div className="space-y-6">
                 {/* You Owe Section */}
                 {userOwes.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-red-600 mb-3 sm:mb-4 flex items-center gap-2">
                       <BanknotesIcon className="h-5 w-5" />
                       You Owe
                     </h3>
@@ -255,7 +255,7 @@ export const GroupPage: React.FC = () => {
                       {userOwes.map((debt) => (
                         <div
                           key={debt.address}
-                          className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-xl"
+                          className="flex items-center justify-between p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl"
                         >
                           <div>
                             <p className="font-medium text-gray-900">
@@ -286,7 +286,7 @@ export const GroupPage: React.FC = () => {
                                 bills: creditorBills,
                               });
                             }}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                           >
                             Settle
                           </button>
@@ -299,7 +299,7 @@ export const GroupPage: React.FC = () => {
                 {/* You Are Owed Section */}
                 {userIsOwed.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-green-600 mb-3 sm:mb-4 flex items-center gap-2">
                       <CurrencyDollarIcon className="h-5 w-5" />
                       You Are Owed
                     </h3>
@@ -307,17 +307,17 @@ export const GroupPage: React.FC = () => {
                       {userIsOwed.map((debt) => (
                         <div
                           key={debt.address}
-                          className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl"
+                          className="flex items-center justify-between p-3 sm:p-4 bg-green-50 border border-green-200 rounded-xl"
                         >
                           <div>
                             <p className="font-medium text-gray-900">
                               {formatAddress(debt.address)}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs md:text-sm whitespace-nowrap text-gray-600">
                               Amount: {formatAmount(debt.amount)} APT
                             </p>
                           </div>
-                          <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
+                          <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium whitespace-nowrap text-xs md:text-lg">
                             Awaiting payment
                           </div>
                         </div>
@@ -336,7 +336,7 @@ export const GroupPage: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {!group || group.bills.length === 0 ? (
                   <div className="text-center py-8">
                     <ReceiptRefundIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -351,7 +351,7 @@ export const GroupPage: React.FC = () => {
                     return (
                       <div
                         key={b.bill_id}
-                        className="p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
                         onClick={() =>
                           setExpandedBillId(
                             expandedBillId === b.bill_id ? null : b.bill_id
@@ -359,8 +359,8 @@ export const GroupPage: React.FC = () => {
                         }
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-gray-900">
+                          <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                            <h4 className="text-sm sm:text-base font-semibold text-gray-900">
                               {hexToString(b.memo)}
                             </h4>
                             {isMine && (
@@ -374,20 +374,20 @@ export const GroupPage: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-gray-900">
+                          <div className="text-right flex flex-col gap-0 md:gap-1">
+                            <p className="text-sm whitespace-nowrap sm:text-base font-bold text-gray-900">
                               {formatAmount(b.total_amount)} APT
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs whitespace-nowrap text-gray-500">
                               Bill #{b.bill_id}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs whitespace-nowrap text-gray-500">
                               Payer: {formatAddress(b.payer)}
                             </p>
                           </div>
                         </div>
                         {expandedBillId === b.bill_id && billStatus && (
-                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="mt-3 sm:mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="p-3 rounded-lg border border-green-200 bg-green-50">
                               <p className="text-sm font-medium text-green-700 mb-2">
                                 Paid

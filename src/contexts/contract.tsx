@@ -152,7 +152,7 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
             acc +
             bill.debtors.reduce((acc, debtor) => {
               if (!debtor.is_paid) {
-                return acc + debtor.owed;
+                return acc + Number(debtor.owed);
               } else {
                 return acc;
               }
@@ -168,7 +168,7 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
             acc +
             bill.debtors.reduce((acc, debtor) => {
               if (debtor.debtor === account && !debtor.is_paid) {
-                return acc + debtor.owed;
+                return acc + Number(debtor.owed);
               } else {
                 return acc;
               }
@@ -184,7 +184,7 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
             acc +
             bill.debtors.reduce((acc, debtor) => {
               if (debtor.debtor === account && debtor.is_paid) {
-                return acc + bill.per_share_amount;
+                return acc + Number(bill.per_share_amount);
               } else {
                 return acc;
               }
@@ -194,13 +194,14 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
           return acc;
         }
       }, 0);
+      console.log(totalPaidByYou,"totalPaidByYou");
       const totalPaidToYou = bills.reduce((acc, bill) => {
         if (bill.payer === account) {
           return (
             acc +
             bill.debtors.reduce((acc, debtor) => {
-              if (debtor.debtor === account && debtor.is_paid) {
-                return acc + bill.per_share_amount;
+              if (debtor.debtor !== account && debtor.is_paid) {
+                return acc + Number(bill.per_share_amount);
               } else {
                 return acc;
               }

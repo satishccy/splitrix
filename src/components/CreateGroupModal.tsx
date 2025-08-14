@@ -4,6 +4,7 @@ import { XMarkIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useContract } from "../contexts/contract";
 import { toast } from "sonner";
 import { NETWORK } from "../config/aptos";
+import { useContacts } from "../contexts/contacts";
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -17,6 +18,10 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const [members, setMembers] = useState<string[]>([""]);
   const [isCreating, setIsCreating] = useState(false);
   const { createGroup, refreshGroupsOverview } = useContract();
+  const { contacts, resolveName } = useContacts();
+
+  const formatAddress = (addr: string) =>
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
 
   const addMemberField = () => {
     setMembers([...members, ""]);
@@ -116,29 +121,43 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Member Addresses
                     </label>
-                    <div className="space-y-2">
-                      {members.map((member, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={member}
-                            onChange={(e) =>
-                              updateMember(index, e.target.value)
-                            }
-                            placeholder="0x..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#01DCC8] focus:border-transparent"
-                          />
-                          {members.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeMemberField(index)}
-                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      {members.map((member, index) => {
+                        const name = member ? resolveName(member) : null;
+                        return (
+                          <div key={index} className="space-y-1">
+                            <div className="flex gap-2">
+                              <input
+                                list="contacts-addresses"
+                                type="text"
+                                value={member}
+                                onChange={(e) => updateMember(index, e.target.value)}
+                                placeholder="0x..."
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#01DCC8] focus:border-transparent"
+                              />
+                              {members.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeMemberField(index)}
+                                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              )}
+                            </div>
+                            {name && (
+                              <div className="text-xs text-gray-600">
+                                Selected: <span className="font-medium">{name}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <datalist id="contacts-addresses">
+                        {contacts.map((c) => (
+                          <option key={c.address} value={c.address}>{`${c.name} (${formatAddress(c.address)})`}</option>
+                        ))}
+                      </datalist>
                     </div>
                     <button
                       type="button"

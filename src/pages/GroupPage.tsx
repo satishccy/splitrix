@@ -28,7 +28,7 @@ function hexToString(hex: string) {
 
 export const GroupPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  const [activeTab, setActiveTab] = useState<"balances" | "bills">("balances");
+  const [activeTab, setActiveTab] = useState<"balances" | "bills" | "members">("balances");
   // const { settleDebt } = useContract();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [settleInfo, setSettleInfo] = useState<{
@@ -237,7 +237,7 @@ export const GroupPage: React.FC = () => {
             <nav className="flex">
               <button
                 onClick={() => setActiveTab("balances")}
-                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors ${
+                className={`flex-1 py-2 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors text-xs sm:text-sm items-center justify-center ${
                   activeTab === "balances"
                     ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -248,7 +248,7 @@ export const GroupPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab("bills")}
-                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors ${
+                className={`flex-1 py-2 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors text-xs sm:text-sm items-center justify-center ${
                   activeTab === "bills"
                     ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -256,6 +256,17 @@ export const GroupPage: React.FC = () => {
               >
                 <ReceiptRefundIcon className="h-5 w-5 inline-block mr-2" />
                 Bills ({group.bills.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("members")}
+                className={`flex-1 py-2 sm:py-4 px-4 sm:px-6 text-center font-medium transition-colors text-xs sm:text-sm items-center justify-center ${
+                  activeTab === "members"
+                    ? "text-[#01DCC8] border-b-2 border-[#01DCC8] bg-[#01DCC8]/5"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                }`}
+              >
+                <UserGroupIcon className="h-5 w-5 inline-block mr-2" />
+                Members ({group.members.length})
               </button>
             </nav>
           </div>
@@ -354,7 +365,7 @@ export const GroupPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : activeTab === "bills" ? (
               <div className="space-y-3 sm:space-y-4">
                 {!group || group.bills.length === 0 ? (
                   <div className="text-center py-8">
@@ -464,6 +475,44 @@ export const GroupPage: React.FC = () => {
                       </div>
                     );
                   })
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {group.members.length === 0 ? (
+                  <div className="text-center py-8 text-gray-600">No members found.</div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {group.members.map((m) => {
+                      const isAdmin = m === group.admin;
+                      const isMe = m === userAddress;
+                      return (
+                        <div key={m} className="flex items-center justify-between py-3">
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {formatAddress(m)}
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              {isAdmin && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Admin</span>
+                              )}
+                              {isMe && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">You</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(m)}
+                              className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}

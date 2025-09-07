@@ -16,10 +16,20 @@ Shows the current net balance of the user in the group
 
 ![Balances](images/balances.png)
 
+#### Add Expense -
+Shows the form to add a new expense
+
+![Add Expense](images/add-expense.png)
+
 #### Bills - 
 Shows all the bills in the group
 
 ![Bills](images/bills.png)
+
+#### Settle Bills -
+Settle the bills individually or all at once
+
+![Settle Bills](images/settle-debt.png)
 
 #### Members -
 Shows all the members in the group
